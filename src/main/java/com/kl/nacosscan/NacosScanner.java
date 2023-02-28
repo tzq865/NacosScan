@@ -14,9 +14,11 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.kl.nacosscan.commandparse.MainParser;
 import com.kl.nacosscan.core.NacosConstant;
+import com.kl.nacosscan.core.OutputFile;
 import com.kl.nacosscan.entity.NacosConfig;
 import com.kl.nacosscan.entity.NameSpace;
 
+import java.io.FileNotFoundException;
 import java.io.StringReader;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -33,7 +35,8 @@ public class NacosScanner {
 
     private static String ROOTURL = "";
     private static String accessToken = "";
-    private static String outputPath = "./result";
+
+    private static OutputFile outputFile;
 
     public static void main(String[] args) {
         MainParser options = MainParser.parse(args);
@@ -57,6 +60,21 @@ public class NacosScanner {
                   System.out.println(usageEg);
                   return;
               }
+            }
+        }
+        if(options.output.isPassedIn){
+            try {
+                outputFile = OutputFile.getInstance(options.output.value.getAbsoluteFilePath());
+            } catch (FileNotFoundException e) {
+                System.out.println("文件路径不存在 将输入到默认目录");
+            }
+        }
+
+        if(ObjectUtil.isNull(outputFile)){
+            try {
+                outputFile = OutputFile.getInstance();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
             }
         }
         startProcess();
@@ -228,26 +246,31 @@ public class NacosScanner {
 
             for(Dict dict: redisDicts){
                 System.out.println("------------------------");
+                outputFile.outputINFO("------------------------");
                 findDictDeep(dict,"redis");
             }
 
             for(Dict dict: datasourceDicts){
                 System.out.println("------------------------");
+                outputFile.outputINFO("------------------------");
                 findDictDeep(dict,"datasource");
             }
 
             for(Dict dict: rabbitmqDicts){
                 System.out.println("------------------------");
+                outputFile.outputINFO("------------------------");
                 findDictDeep(dict,"rabbitmq");
             }
 
             for(Dict dict: mailDicts){
                 System.out.println("------------------------");
+                outputFile.outputINFO("------------------------");
                 findDictDeep(dict,"mail");
             }
 
             for(Dict dict: ldapDicts){
                 System.out.println("------------------------");
+                outputFile.outputINFO("------------------------");
                 findDictDeep(dict,"ldap");
             }
 
@@ -255,24 +278,28 @@ public class NacosScanner {
         if(minioDicts.size() > 0){
             for(Dict dict: minioDicts){
                 System.out.println("------------------------");
+                outputFile.outputINFO("------------------------");
                 findDictDeep(dict,"minio");
             }
         }
         if(wechatDicts.size() > 0){
             for(Dict dict: wechatDicts){
                 System.out.println("------------------------");
+                outputFile.outputINFO("------------------------");
                 findDictDeep(dict,"wechat");
             }
         }
         if(aliyunDicts.size() > 0){
             for(Dict dict: aliyunDicts){
                 System.out.println("------------------------");
+                outputFile.outputINFO("------------------------");
                 findDictDeep(dict,"aliyun");
             }
         }
         if(ftpDicts.size() > 0){
             for(Dict dict: ftpDicts){
                 System.out.println("------------------------");
+                outputFile.outputINFO("------------------------");
                 findDictDeep(dict,"ftp");
             }
         }
@@ -283,9 +310,13 @@ public class NacosScanner {
                 JSONObject resultJson = JSONObject.parseObject(result);
                 JSONArray data = resultJson.getJSONArray("data");
                 if(data.size() > 0){
-                    System.out.println(ip + " (" + data.getJSONObject(0).getString("location") + ")");
+                    String output = ip + " (" + data.getJSONObject(0).getString("location") + ")";
+                    System.out.println(output);
+                    outputFile.outputIP(output);
                 }else{
-                    System.out.println(ip + " (未知归属地)");
+                    String output = ip + " (未知归属地)";
+                    System.out.println(output);
+                    outputFile.outputIP(output);
                 }
             }
         }
@@ -293,26 +324,32 @@ public class NacosScanner {
             System.out.println("↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓【url】↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓");
             for(String url: findURLs){
                 System.out.println(url);
+                outputFile.outputUrl(url);
             }
         }
         if(findEmails.size() > 0){
             System.out.println("↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓【email】↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓");
             for(String email: findEmails){
                 System.out.println(email);
+                outputFile.outputEmail(email);
             }
         }
         if(findPhones.size() > 0){
             System.out.println("↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓【phone】↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓");
             for(String phone: findPhones){
                 System.out.println(phone);
+                outputFile.outputPhone(phone);
             }
         }
         if(findPasswords.size() > 0){
             System.out.println("↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓【疑似密码】↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓");
-            for(String phone: findPasswords){
-                System.out.println(phone);
+            for(String pass: findPasswords){
+                System.out.println(pass);
+                outputFile.outputPass(pass);
             }
         }
+
+        System.out.println("日志目录 ：" + outputFile.getOutputPath());
     }
 
     private static String redKeys = "username,user,password,pass,host,ip,url,appid,secret,access-key,secret-key,port,wxappid,appsecret";
@@ -325,6 +362,7 @@ public class NacosScanner {
             if(subDict.size() > 0){
                 findDictDeep(subDict,logType);
             } else {
+                outputFile.outputINFO("["+logType+"] -- " + entry.getKey() + ":" + entry.getValue());
                 if(redKeys.indexOf(entry.getKey().toString()) != -1){
                     StaticLog.info("\u001B[32m【{}】\u001B[0m -- \u001B[31m {} : {} \u001B[0m", logType, entry.getKey(), entry.getValue());
                 }else{
